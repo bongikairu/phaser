@@ -175,7 +175,7 @@ Phaser.Text.prototype.constructor = Phaser.Text;
 
 /**
 * Automatically called by World.preUpdate.
-* 
+*
 * @method Phaser.Text#preUpdate
 * @protected
 */
@@ -231,7 +231,7 @@ Phaser.Text.prototype.destroy = function (destroyChildren) {
 * The color controls the shade of the shadow (default is black) and can be either an `rgba` or `hex` value.
 * The blur is the strength of the shadow. A value of zero means a hard shadow, a value of 10 means a very soft shadow.
 * To remove a shadow already in place you can call this method with no parameters set.
-* 
+*
 * @method Phaser.Text#setShadow
 * @param {number} [x=0] - The shadowOffsetX value in pixels. This is how far offset horizontally the shadow effect will be.
 * @param {number} [y=0] - The shadowOffsetY value in pixels. This is how far offset vertically the shadow effect will be.
@@ -418,7 +418,7 @@ Phaser.Text.prototype.updateText = function () {
     var width = maxLineWidth + this.style.strokeThickness;
 
     this.canvas.width = width * this._res;
-    
+
     //  Calculate text height
     var lineHeight = fontProperties.fontSize + this.style.strokeThickness + this.padding.y;
     var height = lineHeight * lines.length;
@@ -450,7 +450,7 @@ Phaser.Text.prototype.updateText = function () {
         this.context.fillStyle = this.style.backgroundColor;
         this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
-    
+
     this.context.fillStyle = this.style.fill;
     this.context.font = this.style.font;
     this.context.strokeStyle = this.style.stroke;
@@ -631,10 +631,72 @@ Phaser.Text.prototype.updateShadow = function (state) {
 */
 Phaser.Text.prototype.updateLine = function (line, x, y) {
 
+    var thaiCheckRegex = /[\u0E31\u0E33\u0E34\u0E35\u0E36\u0E37\u0E38\u0E39\u0E3A\u0E47\u0E48\u0E49\u0E4A\u0E4B\u0E4C\u0E4D\u0E4E]/;
+
     for (var i = 0; i < line.length; i++)
     {
         var letter = line[i];
 
+        // thai vowel and tone check
+        var mainCharCount = this._charCount;
+        while(i+1 < line.length && thaiCheckRegex.test(line[i+1]))
+        {
+            letter = letter + line[i+1];
+            i++;
+
+            // style reset
+            if (this.fontWeights.length > 0 || this.fontStyles.length > 0)
+            {
+                var components = this.fontToComponents(this.context.font);
+
+                if (this.fontStyles[this._charCount])
+                {
+                    components.fontStyle = this.fontStyles[this._charCount];
+                }
+
+                if (this.fontWeights[this._charCount])
+                {
+                    components.fontWeight = this.fontWeights[this._charCount];
+                }
+
+                this.context.font = this.componentsToFont(components);
+            }
+
+            if (this.style.stroke && this.style.strokeThickness)
+            {
+                if (this.strokeColors[this._charCount])
+                {
+                    this.context.strokeStyle = this.strokeColors[this._charCount];
+                }
+
+                this.updateShadow(this.style.shadowStroke);
+                this.context.strokeText(letter, x, y);
+            }
+            if (this.style.stroke && this.style.strokeThickness)
+            {
+                if (this.strokeColors[this._charCount])
+                {
+                    this.context.strokeStyle = this.strokeColors[this._charCount];
+                }
+
+                this.updateShadow(this.style.shadowStroke);
+            }
+
+            if (this.style.fill)
+            {
+                if (this.colors[this._charCount])
+                {
+                    this.context.fillStyle = this.colors[this._charCount];
+                }
+
+                this.updateShadow(this.style.shadowFill);
+            }
+            this._charCount++;
+        }
+
+        // restore default style
+        var newCharCount = this._charCount;
+        //this._charCount = mainCharCount;
         if (this.fontWeights.length > 0 || this.fontStyles.length > 0)
         {
             var components = this.fontToComponents(this.context.font);
@@ -643,12 +705,12 @@ Phaser.Text.prototype.updateLine = function (line, x, y) {
             {
                 components.fontStyle = this.fontStyles[this._charCount];
             }
-        
+
             if (this.fontWeights[this._charCount])
             {
                 components.fontWeight = this.fontWeights[this._charCount];
             }
-      
+
             this.context.font = this.componentsToFont(components);
         }
 
@@ -676,6 +738,7 @@ Phaser.Text.prototype.updateLine = function (line, x, y) {
 
         x += this.context.measureText(letter).width;
 
+        //this._charCount = newCharCount;
         this._charCount++;
     }
 
@@ -1058,7 +1121,7 @@ Phaser.Text.prototype.parseList = function (list) {
  * If `Text.wordWrapWidth` is greater than the width of the text bounds it is clamped to match the bounds width.
  *
  * Call this method with no arguments given to reset an existing textBounds.
- * 
+ *
  * It works by calculating the final position based on the Text.canvas size, which is modified as the text is updated. Some fonts
  * have additional padding around them which you can mitigate by tweaking the Text.padding property. It then adjusts the `pivot`
  * property based on the given bounds and canvas size. This means if you need to set the pivot property directly in your game then
@@ -1095,7 +1158,7 @@ Phaser.Text.prototype.setTextBounds = function (x, y, width, height) {
     }
 
     this.updateTexture();
-    
+
     return this;
 
 };
@@ -1200,7 +1263,7 @@ Phaser.Text.prototype._renderCanvas = function (renderSession) {
         this.updateText();
         this.dirty = false;
     }
-     
+
     PIXI.Sprite.prototype._renderCanvas.call(this, renderSession);
 
 };
@@ -1210,7 +1273,7 @@ Phaser.Text.prototype._renderCanvas = function (renderSession) {
 *
 * @method Phaser.Text#determineFontProperties
 * @private
-* @param {object} fontStyle 
+* @param {object} fontStyle
 */
 Phaser.Text.prototype.determineFontProperties = function (fontStyle) {
 
@@ -1219,7 +1282,7 @@ Phaser.Text.prototype.determineFontProperties = function (fontStyle) {
     if (!properties)
     {
         properties = {};
-        
+
         var canvas = Phaser.Text.fontPropertiesCanvas;
         var context = Phaser.Text.fontPropertiesContext;
 
@@ -1465,7 +1528,7 @@ Object.defineProperty(Phaser.Text.prototype, 'fontSize', {
     set: function(value) {
 
         value = value || '0';
-        
+
         if (typeof value === 'number')
         {
             value = value + 'px';
@@ -1613,11 +1676,11 @@ Object.defineProperty(Phaser.Text.prototype, 'resolution', {
 });
 
 /**
-* The size (in pixels) of the tabs, for when text includes tab characters. 0 disables. 
+* The size (in pixels) of the tabs, for when text includes tab characters. 0 disables.
 * Can be an integer or an array of varying tab sizes, one tab per element.
 * For example if you set tabs to 100 then when Text encounters a tab it will jump ahead 100 pixels.
 * If you set tabs to be `[100,200]` then it will set the first tab at 100px and the second at 200px.
-* 
+*
 * @name Phaser.Text#tabs
 * @property {integer|array} tabs
 */
